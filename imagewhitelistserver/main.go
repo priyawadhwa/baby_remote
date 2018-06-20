@@ -27,6 +27,8 @@ import (
 
 	"golang.org/x/crypto/openpgp"
 
+	"github.com/priyawadhwa/grafeasprototype/pkg/executor"
+	"github.com/robfig/cron"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/clearsign"
 	"golang.org/x/crypto/openpgp/packet"
@@ -58,6 +60,15 @@ func main() {
 	flag.StringVar(&publicKey, "--public-key", "/var/gpg_pub//key.pub", "Public File")
 	flag.StringVar(&privateKey, "--private-key", "/var/gpg_priv/key.priv", "Private File")
 
+	c := cron.New()
+	c.AddFunc("1 * * * * *", func() {
+		fmt.Println("running cronjob every minute")
+		if err := checkPods(); err != nil {
+			fmt.Println(err)
+		}
+	})
+	c.Start()
+
 	http.HandleFunc("/", admissionReviewHandler)
 	s := http.Server{
 		Addr: ":443",
@@ -66,6 +77,11 @@ func main() {
 		},
 	}
 	log.Fatal(s.ListenAndServeTLS(tlsCertFile, tlsKeyFile))
+	c.Stop()
+}
+
+func checkPods() error {
+	return executor.Execute("", "")
 }
 
 func admissionReviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -134,20 +150,23 @@ func admissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	t, _ := whitelistCRDs.List(metav1.ListOptions{})
-	unstructredList := t.(*unstructured.UnstructuredList)
-	bytes, _ := unstructredList.MarshalJSON()
-	var nm ImageWhitelistCRD
-	json.Unmarshal(bytes, &nm)
-	for _, item := range nm.Items {
-		log.Printf("\nFound %s whitelist policy namespace: %s, spec %s",
-			item.Name, item.Namespace, item.ObjectSpec.Whitelists)
-		log.Println("Ignoring namespace filter right now")
-		whitelists = append(whitelists, item.ObjectSpec.Whitelists...)
+	if t != nil {
+		unstructredList := t.(*unstructured.UnstructuredList)
+		bytes, _ := unstructredList.MarshalJSON()
+		var nm ImageWhitelistCRD
+		json.Unmarshal(bytes, &nm)
+		for _, item := range nm.Items {
+			log.Printf("\nFound %s whitelist policy namespace: %s, spec %s",
+				item.Name, item.Namespace, item.ObjectSpec.Whitelists)
+			log.Println("Ignoring namespace filter right now")
+			whitelists = append(whitelists, item.ObjectSpec.Whitelists...)
+		}
 	}
 	whitelistSet := make(map[string]bool, len(whitelists))
 	for _, s := range whitelists {
 		whitelistSet[s] = true
 	}
+
 	log.Printf("whitelists %q", whitelistSet)
 	for _, container := range pod.Spec.Containers {
 		log.Printf("Checking Pod image %s", container.Image)

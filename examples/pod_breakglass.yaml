@@ -8,6 +8,6 @@ metadata:
 spec:
   containers:
     - name: nginxbreakglass
-      image: gcr.io/tejaldesai-personal/test_image
+      image: gcr.io/priya-wadhwa/test_image
   imagePullSecrets:
   - name: gcr-json-key

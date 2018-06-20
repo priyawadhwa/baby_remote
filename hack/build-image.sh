@@ -10,5 +10,5 @@ trap cleanup EXIT
 
 pushd "${PROJECT_ROOT}"
 cp -v _output/bin/image-whitelist-server imagewhitelistserver/image-whitelist-server
-docker build -t gcr.io/tejaldesai-personal/image-whitelist-server:latest imagewhitelistserver
+docker build -t gcr.io/priya-wadhwa/image-whitelist-server:latest imagewhitelistserver
 popd

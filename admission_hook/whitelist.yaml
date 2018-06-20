@@ -6,3 +6,4 @@ spec:
   whitelist:
   - gcr.io/tejaldesai-personal/namespace-reservation-server
   - nginx
+  - gcr.io/priya-wadhwa/prototype:latest
